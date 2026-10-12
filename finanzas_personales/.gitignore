@@ -1,5 +1,5 @@
-   .venv/
-   .env
-   datos/*.db
-   __pycache__/
-   .vscode/
+.venv/
+.env
+datos/*.db
+__pycache__/
+.vscode/
