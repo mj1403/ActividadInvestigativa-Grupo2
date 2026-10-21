@@ -10,7 +10,6 @@ from servicios.correo import enviar_correo
 SIMBOLO_MONEDA = "₡"
 DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
-
 def _a_fecha(valor):
     if isinstance(valor, datetime):
         return valor.date()
