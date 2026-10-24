@@ -1,6 +1,7 @@
 import tkinter as tk
 from datetime import date
 from tkinter import messagebox, ttk
+from interfaz.reportes import ventana_reportes
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -231,6 +232,8 @@ class App(tk.Tk):
         ttk.Button(superior, text="Editar", command=self.editar_meta).pack(side="right")
         ttk.Button(superior, text="+ Nueva meta", style="Accent.TButton",
                    command=self.nueva_meta).pack(side="right", padx=6)
+
+        ttk.Button(superior, text="Enviar por correo", command=self.abrir_reportes).pack(side="right", padx=6)
 
         # Tabla de metas
         columnas = ("nombre", "plazo", "estado", "acumulado", "objetivo", "porcentaje", "fecha", "dias")
@@ -474,6 +477,9 @@ class App(tk.Tk):
             metas.eliminar_aporte(int(seleccion[0]))
             self.refrescar()
 
+    def abrir_reportes(self):
+        ventana = ventana_reportes(self)
+        ventana.focus_set()
 
 def iniciar():
     App().mainloop()
