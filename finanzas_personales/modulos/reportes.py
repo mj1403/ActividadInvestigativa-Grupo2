@@ -1,14 +1,13 @@
-from contextlib import closing
 from datetime import date, datetime, timedelta
 from html import escape
 
-from database.conexion import obtener_conexion
+from modulos import metas as modulo_metas
 from modulos import transacciones as modulo_transacciones
 from servicios.correo import enviar_correo
-# from modulos import metas as modulo_metas
 
 SIMBOLO_MONEDA = "₡"
 DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
 
 def _a_fecha(valor):
     if isinstance(valor, datetime):
@@ -27,43 +26,6 @@ def obtener_transacciones(desde=None, hasta=None):
     if desde is not None and hasta is not None:
         return filtrar_periodo(todas, desde, hasta)
     return todas
-
-
-# Métodos que hacen falta en modulos/metas.py:
-#
-#   crear_meta(nombre, monto_objetivo, fecha_limite, plazo)    -> id_meta
-#       plazo: "corto" o "largo".
-#   editar_meta(id_meta, nombre=None, monto_objetivo=None,
-#               fecha_limite=None, plazo=None, estado=None)    -> True si existía
-#   eliminar_meta(id_meta)                                     -> True si existía
-#       (sus aportes se borran solos: ON DELETE CASCADE en aportes_meta)
-#   registrar_aporte(id_meta, monto, fecha=None)               -> id_aporte
-#       Es el "registro de cumplimiento". Si lo aportado llega al monto
-#       objetivo, la meta debería pasar al estado "cumplida".
-#   listar_metas()                                             -> todas las metas
-#   calcular_progreso(id_meta)                                 -> porcentaje 0 a 100
-#       (la "visualización de progreso" del módulo 2)
-#   listar_metas_con_progreso()        <-- ESTA es la que necesita el reporte
-#       Cada meta debe traer: id_meta, nombre, monto_objetivo,
-#       monto_actual (suma de sus aportes) y estado.
-def _consultar(sql, parametros=()):
-    with closing(obtener_conexion()) as conexion:
-        cursor = conexion.cursor()
-        cursor.execute(sql, parametros)
-        columnas = [columna[0] for columna in cursor.description]
-        return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
-
-
-def obtener_metas():
-    """TEMPORAL: lee las metas directo de las tablas (monto_actual = suma de aportes)."""
-    return _consultar(
-        "SELECT m.id_meta, m.nombre, m.monto_objetivo, m.estado, "
-        "COALESCE(SUM(a.monto), 0) AS monto_actual "
-        "FROM metas m "
-        "LEFT JOIN aportes_meta a ON a.id_meta = m.id_meta "
-        "GROUP BY m.id_meta, m.nombre, m.monto_objetivo, m.estado "
-        "ORDER BY m.id_meta"
-    )
 
 
 def filtrar_periodo(transacciones, desde, hasta):
@@ -136,29 +98,7 @@ def detectar_habitos(transacciones, dias=None):
     return habitos
 
 
-def porcentaje_meta(meta):
-    objetivo = float(meta["monto_objetivo"])
-    if objetivo <= 0:
-        return 0.0
-    porcentaje = float(meta["monto_actual"]) / objetivo * 100
-    return round(min(porcentaje, 100.0), 1)
-
-
-def resumen_metas(metas):
-    detalle = [
-        {
-            "nombre": m["nombre"],
-            "porcentaje": porcentaje_meta(m),
-            "estado": m.get("estado", "en_progreso"),
-        }
-        for m in metas
-        if m.get("estado") != "cancelada"
-    ]
-    promedio = round(sum(d["porcentaje"] for d in detalle) / len(detalle), 1) if detalle else 0.0
-    return {"metas": detalle, "promedio": promedio}
-
-
-def construir_reporte_html(titulo, balance, gastos, habitos, resumen):
+def construir_reporte_html(titulo, balance, gastos, habitos, metas, cumplimiento):
     color_balance = "#2e7d32" if balance["balance"] >= 0 else "#c62828"
     celda = "padding:6px 10px;border-bottom:1px solid #e0e0e0;"
 
@@ -176,7 +116,7 @@ def construir_reporte_html(titulo, balance, gastos, habitos, resumen):
         f"<div style='background:#e0e0e0;border-radius:4px;height:10px'>"
         f"<div style='background:#1565c0;border-radius:4px;height:10px;"
         f"width:{m['porcentaje']}%'></div></div>"
-        for m in resumen["metas"]
+        for m in metas
     ) or "<p>No hay metas registradas.</p>"
 
     return f"""<!DOCTYPE html>
@@ -201,7 +141,8 @@ def construir_reporte_html(titulo, balance, gastos, habitos, resumen):
   <h3>Tus hábitos de gasto</h3>
   <ul style="padding-left:20px">{items_habitos}</ul>
 
-  <h3>Progreso de tus metas (promedio: {resumen['promedio']}%)</h3>
+  <h3>Progreso de tus metas (promedio: {cumplimiento['porcentaje_promedio']}%)</h3>
+  <p style="margin:0;color:#555">Cumplidas: {cumplimiento['cumplidas']} · En progreso: {cumplimiento['en_progreso']}</p>
   {bloques_metas}
 </body>
 </html>"""
@@ -225,8 +166,9 @@ def generar_reporte(periodo="semanal"):
     balance = balance_periodo(transacciones)
     gastos = gasto_por_categoria(transacciones)
     habitos = detectar_habitos(transacciones, dias)
-    resumen = resumen_metas(obtener_metas())
-    html = construir_reporte_html(titulo, balance, gastos, habitos, resumen)
+    metas = [m for m in modulo_metas.listar_metas() if m["estado"] != "cancelada"]
+    cumplimiento = modulo_metas.resumen_cumplimiento()
+    html = construir_reporte_html(titulo, balance, gastos, habitos, metas, cumplimiento)
     return titulo, html
 
 
