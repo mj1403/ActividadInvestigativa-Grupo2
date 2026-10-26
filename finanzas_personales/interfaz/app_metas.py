@@ -9,8 +9,19 @@ from modulos import metas
 
 ESTADOS_TXT = {"en_progreso": "En progreso", "cumplida": "Cumplida", "cancelada": "Cancelada"}
 PLAZOS_TXT = {"corto": "Corto plazo", "largo": "Largo plazo"}
+
+# ---------- Paleta ----------
 COLOR_AZUL = "#1976d2"
+COLOR_AZUL_OSCURO = "#1565c0"
 COLOR_VERDE = "#2e7d32"
+COLOR_ROJO = "#c62828"
+COLOR_NARANJA = "#ef6c00"
+COLOR_MORADO = "#6a1b9a"
+FONDO = "#f4f6fb"
+BLANCO = "#ffffff"
+BORDE = "#e3e8ef"
+TEXTO = "#1f2937"
+GRIS = "#6b7280"
 
 
 def _a_numero(texto):
@@ -39,12 +50,80 @@ def _dinero(valor):
     return f"{valor:,.2f}"
 
 
+def _aplicar_estilo(ventana):
+    estilo = ttk.Style(ventana)
+    if "clam" in estilo.theme_names():
+        estilo.theme_use("clam")
+
+    # Contenedores y etiquetas
+    estilo.configure("Fondo.TFrame", background=FONDO)
+    estilo.configure("Card.TFrame", background=BLANCO)
+    estilo.configure("Card.TLabel", background=BLANCO, foreground=GRIS, font=("Helvetica", 12))
+    estilo.configure("CardNegrita.TLabel", background=BLANCO, foreground=TEXTO, font=("Helvetica", 12, "bold"))
+    estilo.configure("CardTitulo.TLabel", background=BLANCO, foreground=TEXTO, font=("Helvetica", 17, "bold"))
+
+    # Campos
+    estilo.configure("TEntry", padding=6, fieldbackground=BLANCO, bordercolor=BORDE)
+    estilo.configure("TCombobox", padding=6, fieldbackground=BLANCO, bordercolor=BORDE, arrowsize=14)
+
+    # Pestañas
+    estilo.configure("TNotebook", background=FONDO, borderwidth=0, tabmargins=(0, 4, 0, 0))
+    estilo.configure(
+        "TNotebook.Tab", padding=(26, 10), font=("Helvetica", 13, "bold"),
+        background="#e3e8ef", foreground="#555555", borderwidth=0,
+    )
+    estilo.map(
+        "TNotebook.Tab",
+        background=[("selected", COLOR_AZUL), ("active", "#cfe0f5")],
+        foreground=[("selected", "white"), ("active", COLOR_AZUL)],
+    )
+
+    # Botones
+    estilo.configure("Accent.TButton", background=COLOR_AZUL, foreground="white",
+                     font=("Helvetica", 12, "bold"), padding=(16, 8), borderwidth=0)
+    estilo.map("Accent.TButton", background=[("active", COLOR_AZUL_OSCURO), ("pressed", "#0d47a1")],
+               foreground=[("active", "white")])
+
+    estilo.configure("Header.TButton", background="white", foreground=COLOR_AZUL,
+                     font=("Helvetica", 12, "bold"), padding=(16, 8), borderwidth=0)
+    estilo.map("Header.TButton", background=[("active", "#e8f1fb")], foreground=[("active", COLOR_AZUL_OSCURO)])
+
+    estilo.configure("Suave.TButton", background="#e8f1fb", foreground=COLOR_AZUL,
+                     font=("Helvetica", 12, "bold"), padding=(14, 8), borderwidth=0)
+    estilo.map("Suave.TButton", background=[("active", "#cfe0f5")], foreground=[("active", COLOR_AZUL_OSCURO)])
+
+    estilo.configure("Peligro.TButton", background="#fdecea", foreground=COLOR_ROJO,
+                     font=("Helvetica", 12, "bold"), padding=(14, 8), borderwidth=0)
+    estilo.map("Peligro.TButton", background=[("active", "#f9c9c5")], foreground=[("active", COLOR_ROJO)])
+
+    # Tablas
+    estilo.configure("Treeview", rowheight=32, font=("Helvetica", 12), background=BLANCO,
+                     fieldbackground=BLANCO, borderwidth=0, foreground=TEXTO)
+    estilo.configure("Treeview.Heading", font=("Helvetica", 12, "bold"), background="#eef2f8",
+                     foreground=TEXTO, padding=(8, 10), borderwidth=0)
+    estilo.map("Treeview", background=[("selected", "#cfe0f5")], foreground=[("selected", "#000000")])
+    estilo.map("Treeview.Heading", background=[("active", "#e3e8ef")])
+
+    # Barras de progreso
+    for nombre, color in (("Verde", COLOR_VERDE), ("Azul", COLOR_AZUL)):
+        estilo.configure(f"{nombre}.Horizontal.TProgressbar", background=color,
+                         troughcolor="#e3e8ef", borderwidth=0, thickness=16)
+
+
+def _cabecera_dialogo(ventana, texto, color=COLOR_AZUL):
+    barra = tk.Frame(ventana, bg=color)
+    barra.pack(fill="x")
+    tk.Label(barra, text=texto, bg=color, fg="white", font=("Helvetica", 16, "bold"),
+             anchor="w").pack(fill="x", padx=20, pady=14)
+
+
 class DialogoMeta(tk.Toplevel):
     """Ventana para crear o editar una meta. Deja el resultado en self.resultado."""
 
     def __init__(self, padre, meta=None):
         super().__init__(padre)
         self.title("Editar meta" if meta else "Nueva meta")
+        self.configure(bg=BLANCO)
         self.resizable(False, False)
         self.transient(padre)
         self.resultado = None
@@ -56,11 +135,13 @@ class DialogoMeta(tk.Toplevel):
         )
         self.v_plazo = tk.StringVar(value=meta["plazo"] if meta else "corto")
 
-        marco = ttk.Frame(self, padding=18)
-        marco.grid()
+        _cabecera_dialogo(self, "Editar meta" if meta else "Nueva meta")
+
+        marco = ttk.Frame(self, padding=20, style="Card.TFrame")
+        marco.pack(fill="both")
         filas = (
             ("Nombre de la meta", ttk.Entry(marco, textvariable=self.v_nombre, width=34)),
-            ("Monto objetivo", ttk.Entry(marco, textvariable=self.v_monto, width=34)),
+            ("Monto objetivo (₡)", ttk.Entry(marco, textvariable=self.v_monto, width=34)),
             ("Fecha límite (AAAA-MM-DD)", ttk.Entry(marco, textvariable=self.v_fecha, width=34)),
             (
                 "Plazo",
@@ -71,15 +152,16 @@ class DialogoMeta(tk.Toplevel):
             ),
         )
         for i, (texto, campo) in enumerate(filas):
-            ttk.Label(marco, text=texto).grid(row=i * 2, column=0, sticky="w", pady=(6, 0))
+            ttk.Label(marco, text=texto, style="Card.TLabel").grid(row=i * 2, column=0, sticky="w", pady=(8, 0))
             campo.grid(row=i * 2 + 1, column=0, sticky="we")
         filas[0][1].focus_set()
 
-        botones = ttk.Frame(marco)
-        botones.grid(row=8, column=0, sticky="e", pady=(16, 0))
-        ttk.Button(botones, text="Cancelar", command=self.destroy).pack(side="right")
+        botones = ttk.Frame(marco, style="Card.TFrame")
+        botones.grid(row=8, column=0, sticky="e", pady=(18, 0))
         ttk.Button(botones, text="Guardar", style="Accent.TButton",
-                   command=self._guardar).pack(side="right", padx=8)
+                   command=self._guardar).pack(side="right")
+        ttk.Button(botones, text="Cancelar", style="Suave.TButton",
+                   command=self.destroy).pack(side="right", padx=8)
 
         self.bind("<Return>", lambda e: self._guardar())
         self.bind("<Escape>", lambda e: self.destroy())
@@ -106,6 +188,7 @@ class DialogoAporte(tk.Toplevel):
     def __init__(self, padre, nombre_meta):
         super().__init__(padre)
         self.title("Registrar aporte")
+        self.configure(bg=BLANCO)
         self.resizable(False, False)
         self.transient(padre)
         self.resultado = None
@@ -113,22 +196,27 @@ class DialogoAporte(tk.Toplevel):
         self.v_monto = tk.StringVar()
         self.v_fecha = tk.StringVar(value=date.today().isoformat())
 
-        marco = ttk.Frame(self, padding=18)
-        marco.grid()
-        ttk.Label(marco, text=f"Meta: {nombre_meta}",
-                  font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w")
-        ttk.Label(marco, text="Monto del aporte").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        _cabecera_dialogo(self, "Registrar aporte", COLOR_VERDE)
+
+        marco = ttk.Frame(self, padding=20, style="Card.TFrame")
+        marco.pack(fill="both")
+        ttk.Label(marco, text=f"Meta: {nombre_meta}", style="CardNegrita.TLabel").grid(
+            row=0, column=0, sticky="w")
+        ttk.Label(marco, text="Monto del aporte (₡)", style="Card.TLabel").grid(
+            row=1, column=0, sticky="w", pady=(12, 0))
         entrada = ttk.Entry(marco, textvariable=self.v_monto, width=30)
         entrada.grid(row=2, column=0, sticky="we")
-        ttk.Label(marco, text="Fecha (AAAA-MM-DD)").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(marco, text="Fecha (AAAA-MM-DD)", style="Card.TLabel").grid(
+            row=3, column=0, sticky="w", pady=(8, 0))
         ttk.Entry(marco, textvariable=self.v_fecha, width=30).grid(row=4, column=0, sticky="we")
         entrada.focus_set()
 
-        botones = ttk.Frame(marco)
-        botones.grid(row=5, column=0, sticky="e", pady=(16, 0))
-        ttk.Button(botones, text="Cancelar", command=self.destroy).pack(side="right")
+        botones = ttk.Frame(marco, style="Card.TFrame")
+        botones.grid(row=5, column=0, sticky="e", pady=(18, 0))
         ttk.Button(botones, text="Registrar", style="Accent.TButton",
-                   command=self._guardar).pack(side="right", padx=8)
+                   command=self._guardar).pack(side="right")
+        ttk.Button(botones, text="Cancelar", style="Suave.TButton",
+                   command=self.destroy).pack(side="right", padx=8)
 
         self.bind("<Return>", lambda e: self._guardar())
         self.bind("<Escape>", lambda e: self.destroy())
@@ -151,16 +239,18 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Finanzas personales · Metas financieras")
-        self.geometry("1120x720")
-        self.minsize(980, 640)
+        self.geometry("1120x760")
+        self.minsize(980, 660)
+        self.configure(bg=FONDO)
 
-        self._estilos()
+        _aplicar_estilo(self)
+        self._crear_encabezado()
         self._crear_resumen()
 
         self.cuaderno = ttk.Notebook(self)
-        self.cuaderno.pack(fill="both", expand=True, padx=12, pady=(0, 12))
-        self.pestana_metas = ttk.Frame(self.cuaderno, padding=10)
-        self.pestana_grafico = ttk.Frame(self.cuaderno, padding=10)
+        self.cuaderno.pack(fill="both", expand=True, padx=16, pady=(8, 16))
+        self.pestana_metas = ttk.Frame(self.cuaderno, style="Fondo.TFrame", padding=(0, 12, 0, 0))
+        self.pestana_grafico = ttk.Frame(self.cuaderno, style="Fondo.TFrame", padding=(0, 12, 0, 0))
         self.cuaderno.add(self.pestana_metas, text="  Metas  ")
         self.cuaderno.add(self.pestana_grafico, text="  Gráfico de progreso  ")
         self.cuaderno.bind("<<NotebookTabChanged>>", lambda e: self._dibujar_grafico())
@@ -171,121 +261,150 @@ class App(tk.Tk):
 
     # ---------- construcción de la ventana ----------
 
-    def _estilos(self):
-        estilo = ttk.Style(self)
-        if "clam" in estilo.theme_names():
-            estilo.theme_use("clam")
-        estilo.configure("Treeview", rowheight=28, font=("Segoe UI", 10))
-        estilo.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
-        estilo.configure("Accent.TButton", font=("Segoe UI", 10, "bold"),
-                         background=COLOR_AZUL, foreground="white")
-        estilo.map("Accent.TButton", background=[("active", "#1565c0")])
-        estilo.configure("Tarjeta.TFrame", background="white", relief="solid", borderwidth=1)
-        estilo.configure("TarjetaValor.TLabel", background="white",
-                         font=("Segoe UI", 20, "bold"), foreground=COLOR_AZUL)
-        estilo.configure("TarjetaTexto.TLabel", background="white",
-                         font=("Segoe UI", 9), foreground="#555555")
-        estilo.configure("Verde.Horizontal.TProgressbar", background=COLOR_VERDE)
-        estilo.configure("Azul.Horizontal.TProgressbar", background=COLOR_AZUL)
+    def _crear_encabezado(self):
+        barra = tk.Frame(self, bg=COLOR_AZUL)
+        barra.pack(fill="x")
+
+        textos = tk.Frame(barra, bg=COLOR_AZUL)
+        textos.pack(side="left", padx=24, pady=16)
+        tk.Label(textos, text="Metas financieras", bg=COLOR_AZUL, fg="white",
+                 font=("Helvetica", 22, "bold"), anchor="w").pack(anchor="w")
+        tk.Label(textos, text="Define objetivos, registra aportes y mira tu progreso",
+                 bg=COLOR_AZUL, fg="#cfe0f5", font=("Helvetica", 13), anchor="w").pack(anchor="w")
+
+        ttk.Button(barra, text="+ Nueva meta", style="Header.TButton",
+                   command=self.nueva_meta).pack(side="right", padx=24)
 
     def _crear_resumen(self):
-        barra = ttk.Frame(self, padding=(12, 12, 12, 8))
-        barra.pack(fill="x")
+        barra = ttk.Frame(self, style="Fondo.TFrame")
+        barra.pack(fill="x", padx=16, pady=(16, 8))
         self.tarjetas = {}
-        for i, (clave, texto) in enumerate((
-            ("total", "Metas registradas"),
-            ("en_progreso", "En progreso"),
-            ("cumplidas", "Cumplidas"),
-            ("porcentaje_promedio", "Avance promedio"),
+        for i, (clave, texto, color) in enumerate((
+            ("total", "Metas registradas", COLOR_AZUL),
+            ("en_progreso", "En progreso", COLOR_NARANJA),
+            ("cumplidas", "Cumplidas", COLOR_VERDE),
+            ("porcentaje_promedio", "Avance promedio", COLOR_MORADO),
         )):
-            tarjeta = ttk.Frame(barra, style="Tarjeta.TFrame", padding=(16, 10))
-            tarjeta.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 8, 0))
-            barra.columnconfigure(i, weight=1)
-            valor = ttk.Label(tarjeta, text="0", style="TarjetaValor.TLabel")
-            valor.pack(anchor="w")
-            ttk.Label(tarjeta, text=texto, style="TarjetaTexto.TLabel").pack(anchor="w")
+            caja = tk.Frame(barra, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
+            caja.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 12, 0))
+            barra.columnconfigure(i, weight=1, uniform="tarjeta")
+            tk.Frame(caja, bg=color, width=6).pack(side="left", fill="y")
+            interior = tk.Frame(caja, bg=BLANCO)
+            interior.pack(side="left", fill="both", expand=True, padx=14, pady=12)
+            tk.Label(interior, text=texto, bg=BLANCO, fg=GRIS,
+                     font=("Helvetica", 12), anchor="w").pack(fill="x")
+            valor = tk.Label(interior, text="0", bg=BLANCO, fg=color,
+                             font=("Helvetica", 22, "bold"), anchor="w")
+            valor.pack(fill="x", pady=(2, 0))
             self.tarjetas[clave] = valor
 
     def _crear_pestana_metas(self):
         raiz = self.pestana_metas
 
-        # Filtros y botones
-        superior = ttk.Frame(raiz)
+        # Filtros y botones (tarjeta blanca)
+        superior = tk.Frame(raiz, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
         superior.pack(fill="x")
-        ttk.Label(superior, text="Plazo:").pack(side="left")
+        fila = ttk.Frame(superior, style="Card.TFrame")
+        fila.pack(fill="x", padx=12, pady=10)
+
+        ttk.Label(fila, text="Plazo", style="Card.TLabel").pack(side="left")
         self.f_plazo = tk.StringVar(value="Todos")
-        combo_plazo = ttk.Combobox(superior, textvariable=self.f_plazo, state="readonly",
+        combo_plazo = ttk.Combobox(fila, textvariable=self.f_plazo, state="readonly",
                                    values=["Todos", "corto", "largo"], width=9)
-        combo_plazo.pack(side="left", padx=(4, 12))
-        ttk.Label(superior, text="Estado:").pack(side="left")
+        combo_plazo.pack(side="left", padx=(6, 16))
+        ttk.Label(fila, text="Estado", style="Card.TLabel").pack(side="left")
         self.f_estado = tk.StringVar(value="Todos")
-        combo_estado = ttk.Combobox(superior, textvariable=self.f_estado, state="readonly",
+        combo_estado = ttk.Combobox(fila, textvariable=self.f_estado, state="readonly",
                                     values=["Todos", *metas.ESTADOS], width=12)
-        combo_estado.pack(side="left", padx=4)
+        combo_estado.pack(side="left", padx=6)
         for combo in (combo_plazo, combo_estado):
             combo.bind("<<ComboboxSelected>>", lambda e: self.refrescar())
 
-        ttk.Button(superior, text="Eliminar", command=self.eliminar_meta).pack(side="right")
-        self.btn_cancelar = ttk.Button(superior, text="Cancelar meta", command=self.alternar_cancelada)
-        self.btn_cancelar.pack(side="right", padx=6)
-        ttk.Button(superior, text="Editar", command=self.editar_meta).pack(side="right")
-        ttk.Button(superior, text="+ Nueva meta", style="Accent.TButton",
-                   command=self.nueva_meta).pack(side="right", padx=6)
+        ttk.Button(fila, text="Eliminar", style="Peligro.TButton",
+                   command=self.eliminar_meta).pack(side="right")
+        self.btn_cancelar = ttk.Button(fila, text="Cancelar meta", style="Suave.TButton",
+                                       command=self.alternar_cancelada)
+        self.btn_cancelar.pack(side="right", padx=8)
+        ttk.Button(fila, text="Editar", style="Suave.TButton",
+                   command=self.editar_meta).pack(side="right")
 
         # Tabla de metas
+        contenedor = tk.Frame(raiz, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
+        contenedor.pack(fill="x", pady=12)
+
         columnas = ("nombre", "plazo", "estado", "acumulado", "objetivo", "porcentaje", "fecha", "dias")
         encabezados = ("Meta", "Plazo", "Estado", "Acumulado", "Objetivo", "Avance", "Fecha límite", "Días")
-        anchos = (220, 100, 100, 110, 110, 80, 100, 70)
-        self.tabla = ttk.Treeview(raiz, columns=columnas, show="headings",
+        anchos = (220, 110, 110, 120, 120, 90, 110, 70)
+        self.tabla = ttk.Treeview(contenedor, columns=columnas, show="headings",
                                   selectmode="browse", height=5)
         for col, enc, ancho in zip(columnas, encabezados, anchos):
             self.tabla.heading(col, text=enc)
             self.tabla.column(col, width=ancho, anchor="w" if col == "nombre" else "center")
+        self.tabla.tag_configure("par", background=BLANCO)
+        self.tabla.tag_configure("impar", background="#f7f9fc")
         self.tabla.tag_configure("cumplida", foreground=COLOR_VERDE)
         self.tabla.tag_configure("cancelada", foreground="#9e9e9e")
-        self.tabla.tag_configure("vencida", foreground="#c62828")
-        self.tabla.pack(fill="x", pady=10)
+        self.tabla.tag_configure("vencida", foreground=COLOR_ROJO)
+        self.tabla.pack(fill="x")
         self.tabla.bind("<<TreeviewSelect>>", lambda e: self._mostrar_detalle())
         self.tabla.bind("<Double-1>", lambda e: self.editar_meta())
 
-        # Detalle de la meta seleccionada
-        detalle = ttk.LabelFrame(raiz, text=" Detalle de la meta seleccionada ", padding=12)
-        detalle.pack(fill="both", expand=True)
+        self.lbl_vacio = tk.Label(self.tabla, text="No hay metas todavía.\n"
+                                  "Usa «+ Nueva meta» para crear la primera.",
+                                  bg=BLANCO, fg=GRIS, font=("Helvetica", 13), justify="center")
 
-        self.lbl_titulo = ttk.Label(detalle, text="Selecciona una meta de la tabla",
-                                    font=("Segoe UI", 13, "bold"))
+        # Detalle de la meta seleccionada (tarjeta blanca)
+        detalle = tk.Frame(raiz, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
+        detalle.pack(fill="both", expand=True)
+        cuerpo = ttk.Frame(detalle, style="Card.TFrame", padding=16)
+        cuerpo.pack(fill="both", expand=True)
+
+        self.lbl_titulo = ttk.Label(cuerpo, text="Selecciona una meta de la tabla",
+                                    style="CardTitulo.TLabel")
         self.lbl_titulo.pack(anchor="w")
-        self.lbl_info = ttk.Label(detalle, text="", foreground="#555555")
-        self.lbl_info.pack(anchor="w", pady=(2, 6))
-        self.barra = ttk.Progressbar(detalle, maximum=100, length=400,
+        self.lbl_info = ttk.Label(cuerpo, text="", style="Card.TLabel", wraplength=1000)
+        self.lbl_info.pack(anchor="w", pady=(2, 8))
+        self.barra = ttk.Progressbar(cuerpo, maximum=100, length=400,
                                      style="Azul.Horizontal.TProgressbar")
         self.barra.pack(fill="x")
-        self.lbl_porcentaje = ttk.Label(detalle, text="", font=("Segoe UI", 10, "bold"))
+        self.lbl_porcentaje = ttk.Label(cuerpo, text="", style="CardNegrita.TLabel")
         self.lbl_porcentaje.pack(anchor="e")
 
-        cabecera = ttk.Frame(detalle)
-        cabecera.pack(fill="x", pady=(6, 4))
-        ttk.Label(cabecera, text="Aportes registrados",
-                  font=("Segoe UI", 10, "bold")).pack(side="left")
-        self.btn_eliminar_aporte = ttk.Button(cabecera, text="Eliminar aporte",
+        cabecera = ttk.Frame(cuerpo, style="Card.TFrame")
+        cabecera.pack(fill="x", pady=(8, 6))
+        ttk.Label(cabecera, text="Aportes registrados", style="CardNegrita.TLabel").pack(side="left")
+        self.btn_eliminar_aporte = ttk.Button(cabecera, text="Eliminar aporte", style="Peligro.TButton",
                                               command=self.eliminar_aporte)
         self.btn_eliminar_aporte.pack(side="right")
         self.btn_aporte = ttk.Button(cabecera, text="+ Registrar aporte", style="Accent.TButton",
                                      command=self.registrar_aporte)
-        self.btn_aporte.pack(side="right", padx=6)
+        self.btn_aporte.pack(side="right", padx=8)
 
-        self.tabla_aportes = ttk.Treeview(detalle, columns=("fecha", "monto"),
-                                          show="headings", height=5)
+        marco_aportes = tk.Frame(cuerpo, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
+        marco_aportes.pack(fill="both", expand=True)
+        self.tabla_aportes = ttk.Treeview(marco_aportes, columns=("fecha", "monto"),
+                                          show="headings", height=4)
         self.tabla_aportes.heading("fecha", text="Fecha")
         self.tabla_aportes.heading("monto", text="Monto")
         self.tabla_aportes.column("fecha", width=140, anchor="center")
         self.tabla_aportes.column("monto", width=160, anchor="e")
-        self.tabla_aportes.pack(fill="both", expand=True)
+        self.tabla_aportes.tag_configure("par", background=BLANCO)
+        self.tabla_aportes.tag_configure("impar", background="#f7f9fc")
+        scroll = ttk.Scrollbar(marco_aportes, orient="vertical", command=self.tabla_aportes.yview)
+        self.tabla_aportes.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.tabla_aportes.pack(side="left", fill="both", expand=True)
+
+        self.lbl_sin_aportes = tk.Label(self.tabla_aportes, text="", bg=BLANCO, fg=GRIS,
+                                        font=("Helvetica", 12))
 
     def _crear_pestana_grafico(self):
-        self.figura = Figure(figsize=(8, 4.5), dpi=100)
-        self.lienzo = FigureCanvasTkAgg(self.figura, master=self.pestana_grafico)
-        self.lienzo.get_tk_widget().pack(fill="both", expand=True)
+        tarjeta = tk.Frame(self.pestana_grafico, bg=BLANCO, highlightthickness=1,
+                           highlightbackground=BORDE)
+        tarjeta.pack(fill="both", expand=True)
+        self.figura = Figure(figsize=(8, 4.5), dpi=100, facecolor=BLANCO)
+        self.lienzo = FigureCanvasTkAgg(self.figura, master=tarjeta)
+        self.lienzo.get_tk_widget().pack(fill="both", expand=True, padx=8, pady=8)
 
     # ---------- datos en pantalla ----------
 
@@ -293,6 +412,13 @@ class App(tk.Tk):
         plazo = self.f_plazo.get()
         estado = self.f_estado.get()
         return (None if plazo == "Todos" else plazo, None if estado == "Todos" else estado)
+
+    def _texto_aportes(self, texto):
+        if texto:
+            self.lbl_sin_aportes.config(text=texto)
+            self.lbl_sin_aportes.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            self.lbl_sin_aportes.place_forget()
 
     def refrescar(self):
         """Recarga tarjetas, tabla, detalle y gráfico desde la base de datos."""
@@ -307,9 +433,10 @@ class App(tk.Tk):
 
         self.tabla.delete(*self.tabla.get_children())
         plazo, estado = self._filtros()
-        for m in metas.listar_metas(plazo, estado):
+        lista = metas.listar_metas(plazo, estado)
+        for i, m in enumerate(lista):
             activa = m["estado"] == "en_progreso"
-            etiquetas = []
+            etiquetas = ["par" if i % 2 == 0 else "impar"]
             if m["estado"] in ("cumplida", "cancelada"):
                 etiquetas.append(m["estado"])
             elif activa and m["dias_restantes"] < 0:
@@ -324,6 +451,10 @@ class App(tk.Tk):
                 m["fecha_limite"],
                 m["dias_restantes"] if activa else "—",
             ))
+        if lista:
+            self.lbl_vacio.place_forget()
+        else:
+            self.lbl_vacio.place(relx=0.5, rely=0.5, anchor="center")
 
         if id_seleccionado and self.tabla.exists(id_seleccionado):
             self.tabla.selection_set(id_seleccionado)
@@ -347,6 +478,7 @@ class App(tk.Tk):
             self.lbl_porcentaje.config(text="")
             self.barra["value"] = 0
             self.btn_cancelar.config(text="Cancelar meta")
+            self._texto_aportes("Selecciona una meta para ver sus aportes.")
             return
 
         self.lbl_titulo.config(text=meta["nombre"])
@@ -369,9 +501,12 @@ class App(tk.Tk):
         self.btn_cancelar.config(
             text="Reactivar meta" if meta["estado"] == "cancelada" else "Cancelar meta")
 
-        for a in metas.listar_aportes(meta["id_meta"]):
+        aportes = metas.listar_aportes(meta["id_meta"])
+        for i, a in enumerate(aportes):
             self.tabla_aportes.insert("", "end", iid=str(a["id_aporte"]),
+                                      tags=("par" if i % 2 == 0 else "impar",),
                                       values=(a["fecha"], _dinero(a["monto"])))
+        self._texto_aportes(None if aportes else "Aún no hay aportes para esta meta.")
 
     def _dibujar_grafico(self):
         self.figura.clear()
@@ -380,19 +515,24 @@ class App(tk.Tk):
         if not lista:
             ax.axis("off")
             ax.text(0.5, 0.5, "Aún no hay metas para graficar", ha="center", va="center",
-                    fontsize=13, color="#777777")
+                    fontsize=13, color=GRIS)
         else:
             nombres = [m["nombre"] for m in lista]
             porcentajes = [m["porcentaje"] for m in lista]
             colores = [COLOR_VERDE if m["estado"] == "cumplida" else COLOR_AZUL for m in lista]
-            barras = ax.barh(nombres, porcentajes, color=colores)
-            ax.set_xlim(0, 100)
-            ax.set_xlabel("Progreso (%)")
-            ax.set_title("Progreso de metas financieras")
+            ax.barh(nombres, [100] * len(lista), color="#eef2f8", height=0.55)   # fondo de la barra
+            barras = ax.barh(nombres, porcentajes, color=colores, height=0.55)
+            ax.set_xlim(0, 112)
             ax.invert_yaxis()
+            for lado in ("top", "right", "bottom", "left"):
+                ax.spines[lado].set_visible(False)
+            ax.set_xticks([])
+            ax.tick_params(axis="y", length=0, labelsize=12)
             for barra, p in zip(barras, porcentajes):
-                ax.text(p + 1, barra.get_y() + barra.get_height() / 2,
-                        f"{p:.1f}%", va="center")
+                ax.text(101, barra.get_y() + barra.get_height() / 2,
+                        f"{p:.1f}%", va="center", fontsize=11, fontweight="bold", color=TEXTO)
+            ax.set_title("Progreso de metas financieras", fontsize=14, fontweight="bold",
+                         color=TEXTO, loc="left")
         self.figura.tight_layout()
         self.lienzo.draw()
 
