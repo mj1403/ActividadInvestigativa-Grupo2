@@ -6,7 +6,7 @@ GO
 USE finanzas_db;
 GO
 
--- 2. Categorías (alimentación, transporte, ahorro, etc.)
+-- 2. CategorÃ­as (alimentaciÃ³n, transporte, ahorro, etc.)
 IF OBJECT_ID('dbo.categorias') IS NULL
 CREATE TABLE dbo.categorias (
     id_categoria INT IDENTITY(1,1) PRIMARY KEY,
@@ -17,7 +17,7 @@ CREATE TABLE dbo.categorias (
 );
 GO
 
--- 3. Transacciones (módulo 1)
+-- 3. Transacciones (mÃ³dulo 1)
 IF OBJECT_ID('dbo.transacciones') IS NULL
 CREATE TABLE dbo.transacciones (
     id_transaccion INT IDENTITY(1,1) PRIMARY KEY,
@@ -29,7 +29,7 @@ CREATE TABLE dbo.transacciones (
 );
 GO
 
--- 4. Metas (módulo 2)
+-- 4. Metas (mÃ³dulo 2)
 IF OBJECT_ID('dbo.metas') IS NULL
 CREATE TABLE dbo.metas (
     id_meta        INT IDENTITY(1,1) PRIMARY KEY,
@@ -55,12 +55,12 @@ CREATE TABLE dbo.aportes_meta (
 );
 GO
 
--- 6. Categorías iniciales (no duplica si se ejecuta de nuevo)
+-- 6. CategorÃ­as iniciales (no duplica si se ejecuta de nuevo)
 INSERT INTO dbo.categorias (nombre, tipo)
 SELECT v.nombre, v.tipo
 FROM (VALUES
     ('Salario', 'ingreso'), ('Otros ingresos', 'ingreso'),
-    ('Alimentación', 'egreso'), ('Transporte', 'egreso'),
+    ('Alimentaciï¿½n', 'egreso'), ('Transporte', 'egreso'),
     ('Vivienda', 'egreso'), ('Salud', 'egreso'),
     ('Entretenimiento', 'egreso'), ('Ahorro', 'egreso'),
     ('Otros gastos', 'egreso')

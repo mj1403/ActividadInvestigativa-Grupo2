@@ -36,7 +36,7 @@ class Tarjeta(tk.Frame):
     """Tarjeta clicable con franja de color, símbolo, título y descripción."""
 
     def __init__(self, master, color, simbolo, titulo, descripcion, comando):
-        super().__init__(master, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE, cursor="pointinghand")
+        super().__init__(master, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE, cursor="hand2")
         self.comando = comando
         self.fondo_normal = BLANCO
         self.fondo_hover = "#f0f6fd"
