@@ -5,6 +5,8 @@ from tkinter import messagebox, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+from interfaz.reportes import ventana_reportes
+
 from modulos import metas
 
 ESTADOS_TXT = {"en_progreso": "En progreso", "cumplida": "Cumplida", "cancelada": "Cancelada"}
@@ -327,6 +329,8 @@ class App(tk.Tk):
         self.btn_cancelar.pack(side="right", padx=8)
         ttk.Button(fila, text="Editar", style="Suave.TButton",
                    command=self.editar_meta).pack(side="right")
+        ttk.Button(fila, text="Enviar por correo", style="Accent.TButton",
+                   command=self.abrir_reportes).pack(side="right", padx=8)
 
         # Tabla de metas
         contenedor = tk.Frame(raiz, bg=BLANCO, highlightthickness=1, highlightbackground=BORDE)
@@ -614,6 +618,9 @@ class App(tk.Tk):
             metas.eliminar_aporte(int(seleccion[0]))
             self.refrescar()
 
+    def abrir_reportes(self):
+        ventana = ventana_reportes(self)
+        ventana.focus_set()
 
 def iniciar():
     App().mainloop()
